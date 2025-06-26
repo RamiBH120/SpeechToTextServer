@@ -1,10 +1,13 @@
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet,Text,TouchableOpacity,View } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { useEffect, useRef, useState } from 'react';
 import { Audio } from 'expo-av';
 import { recordSpeech } from '@/functions/recordSpeech';
 import { transcribeSpeech } from '@/functions/transcribeSpeech';
 import useWebFocus from '@/hooks/useWebFocus';
+import { searchYoutubeVideos } from '@/functions/searchYoutubeVideos';
+import { VideoContent } from '@/types/videoContents';
 
 export default function HomeScreen() {
   const [transcription, setTranscription] = useState('');
@@ -14,6 +17,8 @@ export default function HomeScreen() {
 
   const isWebFocus = useWebFocus();
   const webAudioPermissionRef = useRef<MediaStream | null>(null);
+  const [results, setResults] = useState<VideoContent | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if(isWebFocus){
@@ -52,6 +57,23 @@ export default function HomeScreen() {
       setIsTranscribing(false);
     }
   };
+
+  const searchYouTube = async (query: string) => {
+    try {
+      setIsLoading(true);
+      if (!query) {
+        console.warn("No transcription available for YouTube search.");
+        return;
+      }
+      const results = await searchYoutubeVideos(query);
+      setResults(results);
+    } catch (error) {
+      console.error("YouTube search failed:", error);
+      setResults(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   return (
     <SafeAreaView>
@@ -69,12 +91,17 @@ export default function HomeScreen() {
               "Your transcription will appear here"}
               </Text>
           )}
-          </View>
-        <TouchableOpacity
-        style={{
-          ...styles.recordButton,
-          opacity: isRecording ? 1 : 0.7
-        }}
+          <Text style={styles.subtitle}>
+            {results?.topic}
+          </Text>
+        </View>
+        </View>
+        <View style={{alignItems: 'center', justifyContent: 'center', display: 'flex', flexDirection: 'row',gap: 20}}>
+          <TouchableOpacity
+            style={{
+              ...styles.recordButton,
+              opacity: isRecording ? 1 : 0.7
+            }}
         activeOpacity={0.7}
           onPressIn={handleStartRecording}
           onPressOut={handleStopRecording}
@@ -86,7 +113,44 @@ export default function HomeScreen() {
             <FontAwesome name="microphone" size={40} color="black" />
           )}
         </TouchableOpacity>
+
+        
+        <TouchableOpacity
+        style={{
+          ...styles.recordButton,
+          backgroundColor: transcription ? '#4CAF50' : '#0c0',
+          opacity: transcription ? 1 : 0.7,
+        }}
+          activeOpacity={0.7}
+          onPress={() => searchYouTube(transcription)}
+          disabled={transcription === ''}
+        >
+          {isTranscribing ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <FontAwesome6 name="magnifying-glass" size={24} color="black" />
+          )}
+        </TouchableOpacity>
       </View>
+        <Text style={styles.subtitle}>YouTube Videos:</Text>
+        {isLoading ? (
+          <ActivityIndicator size="large" color="#0000ff" />
+        ) : (
+        <View style={{marginBottom: 20}}>
+          {results?.videos.length === 0 ? (
+            <Text>No videos found for this topic.</Text>
+          ):(
+            <View style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {results?.videos.map(video => (
+                <View key={video.url}>
+                  <Text>{video.title}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+        )}
+        
     </ScrollView>
   </SafeAreaView>
   );

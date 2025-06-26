@@ -4,9 +4,14 @@ import { speechToText } from './functions/speechToText';
 import cors from 'cors';
 import "dotenv/config";
 
+import bodyParser from 'body-parser';
+import { processSpeech } from './functions/processSpeech';
+
 dotenv.config();
 
 const port = process.env.PORT || 4000;
+
+
 // Initialize the Express application
 const app = express();
 // Middleware to parse JSON bodies
@@ -22,6 +27,12 @@ app.post('/api/speech-to-text', (req, res) => {
 
 app.get('/', (req, res) => {
   res.send('The speech is ready to be delivered!');
+});
+
+app.use(bodyParser.json());
+
+app.post("/api/process-speech", async (req, res) => {
+  processSpeech(req, res);
 });
 
 app.listen(port, () => {
