@@ -1,4 +1,4 @@
-import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet,Text,TouchableOpacity,View } from 'react-native';
+import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { useEffect, useRef, useState } from 'react';
@@ -8,6 +8,7 @@ import { transcribeSpeech } from '@/functions/transcribeSpeech';
 import useWebFocus from '@/hooks/useWebFocus';
 import { searchYoutubeVideos } from '@/functions/searchYoutubeVideos';
 import { VideoContent } from '@/types/videoContents';
+import { Link } from '@react-navigation/native';
 
 export default function HomeScreen() {
   const [transcription, setTranscription] = useState('');
@@ -21,28 +22,28 @@ export default function HomeScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if(isWebFocus){
+    if (isWebFocus) {
       const getMicrophonePermission = async () => {
-        const permissions= await navigator.mediaDevices.getUserMedia({ audio: true });
+        const permissions = await navigator.mediaDevices.getUserMedia({ audio: true });
         webAudioPermissionRef.current = permissions;
       };
-      if(!webAudioPermissionRef.current) getMicrophonePermission();
-      
-    }else { 
-      if( webAudioPermissionRef.current) {
+      if (!webAudioPermissionRef.current) getMicrophonePermission();
+
+    } else {
+      if (webAudioPermissionRef.current) {
         webAudioPermissionRef.current
-        .getTracks()
-        .forEach(track => track.stop());
+          .getTracks()
+          .forEach(track => track.stop());
         webAudioPermissionRef.current = null;
       }
     }
-  }, [isWebFocus]);
+  }, [isWebFocus,results]);
 
   const handleStartRecording = async () => {
     setIsRecording(true);
     await recordSpeech(audioRecordingRef,
-       setIsRecording,
-        !!webAudioPermissionRef.current);
+      setIsRecording,
+      !!webAudioPermissionRef.current);
   };
 
   const handleStopRecording = async () => {
@@ -67,6 +68,9 @@ export default function HomeScreen() {
       }
       const results = await searchYoutubeVideos(query);
       setResults(results);
+      console.log("Search results:", results);
+      
+      
     } catch (error) {
       console.error("YouTube search failed:", error);
       setResults(null);
@@ -74,93 +78,188 @@ export default function HomeScreen() {
       setIsLoading(false);
     }
   };
-  
+
   return (
     <SafeAreaView>
       <ScrollView style={styles.mainScrollContainer}>
         <View style={styles.mainInnerContainer}>
           <Text style={styles.title}>Welcome to the Speech-to-Text App</Text>
-        <View style={styles.transcriptionContainer}>
-          {isTranscribing ? (
-            <ActivityIndicator size="large" color="#0000ff" />
-          ) : (
-            <Text style={{
-              ...styles.transcriptionText,
-              color: transcription ? '#000' : '#999'
-            }}>{transcription || 
-              "Your transcription will appear here"}
+          <View style={styles.transcriptionContainer}>
+            {isTranscribing ? (
+              <ActivityIndicator size="large" color="#0000ff" />
+            ) : (
+              <Text style={{
+                ...styles.transcriptionText,
+                color: transcription ? '#000' : '#999'
+              }}>{transcription ||
+                "Your transcription will appear here"}
               </Text>
-          )}
-          <Text style={styles.subtitle}>
-            {results?.topic}
-          </Text>
+            )}
+          </View>
         </View>
-        </View>
-        <View style={{alignItems: 'center', justifyContent: 'center', display: 'flex', flexDirection: 'row',gap: 20}}>
+        <View style={{ alignItems: 'center', justifyContent: 'center', display: 'flex', flexDirection: 'row', gap: 20 }}>
           <TouchableOpacity
             style={{
               ...styles.recordButton,
               opacity: isRecording ? 1 : 0.7
             }}
-        activeOpacity={0.7}
-          onPressIn={handleStartRecording}
-          onPressOut={handleStopRecording}
-          disabled={isTranscribing || isRecording}
-        >
-          {isRecording ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <FontAwesome name="microphone" size={40} color="black" />
-          )}
-        </TouchableOpacity>
+            activeOpacity={0.7}
+            onPressIn={handleStartRecording}
+            onPressOut={handleStopRecording}
+            disabled={isTranscribing || isRecording}
+          >
+            {isRecording ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <FontAwesome name="microphone" size={40} color="black" />
+            )}
+          </TouchableOpacity>
 
-        
-        <TouchableOpacity
-        style={{
-          ...styles.recordButton,
-          backgroundColor: transcription ? '#4CAF50' : '#0c0',
-          opacity: transcription ? 1 : 0.7,
-        }}
-          activeOpacity={0.7}
-          onPress={() => searchYouTube(transcription)}
-          disabled={transcription === ''}
-        >
-          {isTranscribing ? (
-            <ActivityIndicator size="small" color="#fff" />
+
+          <TouchableOpacity
+            style={{
+              ...styles.recordButton,
+              backgroundColor: transcription ? '#4CAF50' : '#0c0',
+              opacity: transcription ? 1 : 0.7,
+            }}
+            activeOpacity={0.7}
+            onPress={() => searchYouTube(transcription)}
+            disabled={transcription === ''}
+          >
+            {isTranscribing ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <FontAwesome6 name="magnifying-glass" size={24} color="black" />
+            )}
+          </TouchableOpacity>
+        </View>
+          <View style={{ padding: 20, maxHeight: '100%', width: '100%', display: 'flex', flexDirection: 'column',borderColor: '#ccc', borderWidth: 1, borderRadius: 8, marginTop: 20 }}>
+            {isLoading ? (
+              <ActivityIndicator size='small' color="#0000ff" />
+            ) : (
+              <Text style={styles.transcriptionText
+              }>{isLoading ||
+                results?.topic}
+              </Text>
+            )}
+          </View>
+        <View style={styles.videosContainer}>
+          <Text style={styles.subtitle}>YouTube Videos {results?.videos && results?.videos?.length > 0 ? `(${results?.videos?.length})` : '(No videos found)'}</Text>
+          {isLoading ? (
+            <ActivityIndicator size="large" color="#0000ff" />
           ) : (
-            <FontAwesome6 name="magnifying-glass" size={24} color="black" />
-          )}
-        </TouchableOpacity>
-      </View>
-        <Text style={styles.subtitle}>YouTube Videos:</Text>
-        {isLoading ? (
-          <ActivityIndicator size="large" color="#0000ff" />
-        ) : (
-        <View style={{marginBottom: 20}}>
-          {results?.videos.length === 0 ? (
-            <Text>No videos found for this topic.</Text>
-          ):(
-            <View style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <ScrollView style={styles.videosScrollView}>
               {results?.videos.map(video => (
-                <View key={video.url}>
-                  <Text>{video.title}</Text>
-                </View>
+                <TouchableOpacity 
+                  key={video.url} 
+                  style={styles.videoItem}
+                  onPress={() => {
+                    // Open the URL - this will work on web, for mobile you might need Linking
+                    if (typeof window !== 'undefined') {
+                      window.open(video.url, '_blank');
+                    }
+                  }}
+                >
+                  <View style={styles.videoThumbnailContainer}>
+                    <View style={styles.videoThumbnail}>
+                      <FontAwesome name="play-circle" size={40} color="#ff0000" />
+                    </View>
+                  </View>
+                  <View style={styles.videoContent}>
+                    <Text style={styles.videoTitle} numberOfLines={2}>
+                      {video.title}
+                    </Text>
+                    <Text style={styles.videoUrl} numberOfLines={1}>
+                      {video.url}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
               ))}
-            </View>
+            </ScrollView>
           )}
         </View>
-        )}
-        
-    </ScrollView>
-  </SafeAreaView>
+
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    maxHeight: '100%',
+    overflow: 'hidden',
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  videosContainer: {
+    width: '100%',
+    padding: 20,
+    backgroundColor: '#fff',
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    marginTop: 20,
+    maxHeight: 400,
+  },
+  videosScrollView: {
+    width: '100%',
+  },
+  videoItem: {
+    flexDirection: 'row',
+    padding: 12,
+    marginBottom: 12,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    alignItems: 'center',
+  },
+  videoThumbnailContainer: {
+    marginRight: 12,
+  },
+  videoThumbnail: {
+    width: 80,
+    height: 60,
+    backgroundColor: '#000',
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoContent: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  videoTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  videoUrl: {
+    fontSize: 12,
+    color: '#666',
+  },
+  videoContainer: {
+    maxWidth: 300,
+    height: 200,
+    padding: 16,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    marginBottom: 16,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   recordButton: {
     backgroundColor: '#ff0000',
     borderRadius: 50,
-    marginTop: 100,
+    marginTop: 20,
     width: 60,
     height: 60,
     alignItems: 'center',
