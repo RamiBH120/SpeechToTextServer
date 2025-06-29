@@ -2,13 +2,14 @@ import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, Touchabl
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { useEffect, useRef, useState } from 'react';
-import { Audio } from 'expo-av';
+import { Audio, Video } from 'expo-av';
 import { recordSpeech } from '@/functions/recordSpeech';
 import { transcribeSpeech } from '@/functions/transcribeSpeech';
 import useWebFocus from '@/hooks/useWebFocus';
 import { searchYoutubeVideos } from '@/functions/searchYoutubeVideos';
 import { VideoContent } from '@/types/videoContents';
-import { Link } from '@react-navigation/native';
+import VideoList from '@/components/elements/VideoList';
+
 
 export default function HomeScreen() {
   const [transcription, setTranscription] = useState('');
@@ -83,7 +84,7 @@ export default function HomeScreen() {
     <SafeAreaView>
       <ScrollView style={styles.mainScrollContainer}>
         <View style={styles.mainInnerContainer}>
-          <Text style={styles.title}>Welcome to the Speech-to-Text App</Text>
+          <Text style={styles.title}>Welcome to the Agriculture Practices Speech-to-Text App</Text>
           <View style={styles.transcriptionContainer}>
             {isTranscribing ? (
               <ActivityIndicator size="large" color="#0000ff" />
@@ -120,7 +121,7 @@ export default function HomeScreen() {
             style={{
               ...styles.recordButton,
               backgroundColor: transcription ? '#4CAF50' : '#0c0',
-              opacity: transcription ? 1 : 0.7,
+              opacity: transcription.length > 0 ? 1 : 0.2,
             }}
             activeOpacity={0.7}
             onPress={() => searchYouTube(transcription)}
@@ -137,45 +138,24 @@ export default function HomeScreen() {
             {isLoading ? (
               <ActivityIndicator size='small' color="#0000ff" />
             ) : (
-              <Text style={styles.transcriptionText
-              }>{isLoading ||
-                results?.topic}
+              <Text style={{
+                ...styles.transcriptionText,
+                color: transcription ? '#000' : '#999',
+                textAlign: 'center',
+                fontSize: 16,
+              }}
+              >{results?.topic ||
+                "Start recording then search for feedback and YouTube videos."}
               </Text>
+              
             )}
           </View>
         <View style={styles.videosContainer}>
-          <Text style={styles.subtitle}>YouTube Videos {results?.videos && results?.videos?.length > 0 ? `(${results?.videos?.length})` : '(No videos found)'}</Text>
+          <Text style={styles.subtitle}>YouTube Videos {results?.videos && results?.videos?.length > 0 && `(${results?.videos?.length})`}</Text>
           {isLoading ? (
             <ActivityIndicator size="large" color="#0000ff" />
           ) : (
-            <ScrollView style={styles.videosScrollView}>
-              {results?.videos.map(video => (
-                <TouchableOpacity 
-                  key={video.url} 
-                  style={styles.videoItem}
-                  onPress={() => {
-                    // Open the URL - this will work on web, for mobile you might need Linking
-                    if (typeof window !== 'undefined') {
-                      window.open(video.url, '_blank');
-                    }
-                  }}
-                >
-                  <View style={styles.videoThumbnailContainer}>
-                    <View style={styles.videoThumbnail}>
-                      <FontAwesome name="play-circle" size={40} color="#ff0000" />
-                    </View>
-                  </View>
-                  <View style={styles.videoContent}>
-                    <Text style={styles.videoTitle} numberOfLines={2}>
-                      {video.title}
-                    </Text>
-                    <Text style={styles.videoUrl} numberOfLines={1}>
-                      {video.url}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            <VideoList results={results} styles={styles} />
           )}
         </View>
 

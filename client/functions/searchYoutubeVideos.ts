@@ -10,7 +10,6 @@ export const searchYoutubeVideos = async (query: string): Promise<VideoContent> 
         });
         
         const data = await response.json();
-
         return { 
             topic: data.topic, 
             videos: data.videos 
