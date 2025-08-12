@@ -155,7 +155,34 @@ export default function HomeScreen() {
           {isLoading ? (
             <ActivityIndicator size="large" color="#0000ff" />
           ) : (
-            <VideoList results={results} styles={styles} />
+            <ScrollView style={styles.videosScrollView}>
+            {results?.videos.map(video => (
+                <TouchableOpacity
+                    key={video.url}
+                    style={styles.videoItem}
+                    onPress={() => {
+                        // Open the URL - this will work on web, for mobile you might need Linking
+                        if (typeof window !== 'undefined') {
+                            window.open(video.url, '_blank');
+                        }
+                    }}
+                >
+                    <View style={styles.videoThumbnailContainer}>
+                        <View style={styles.videoThumbnail}>
+                            <FontAwesome name="play-circle" size={40} color="#ff0000" />
+                        </View>
+                    </View>
+                    <View style={styles.videoContent}>
+                        <Text style={styles.videoTitle} numberOfLines={2}>
+                            {video.title}
+                        </Text>
+                        <Text style={styles.videoUrl} numberOfLines={1}>
+                            {video.url}
+                        </Text>
+                    </View>
+                </TouchableOpacity>
+            ))}
+        </ScrollView>
           )}
         </View>
 
@@ -261,6 +288,7 @@ const styles = StyleSheet.create({
   },
   mainInnerContainer: {
     height: '100%',
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
   },
